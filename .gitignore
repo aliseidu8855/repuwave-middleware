@@ -1,0 +1,32 @@
+# Byte-compiled / cache
+__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache/
+**/.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+**/_venv/
+**/.venv/
+
+# Node modules
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+
+# Java / Spring Boot compile targets
+target/
+**/target/
+*.class
+*.jar
+
+# Build assets
+*.egg-info/
+**/*.egg-info/
+build/
+**/build/
