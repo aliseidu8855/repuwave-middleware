@@ -91,18 +91,18 @@ export function repuwaveGuard(config: RepuwaveConfig) {
             bodyHash = crypto.createHash("sha256").update(bodyString).digest("hex");
           }
 
-          const payload = {
-            body_hash: bodyHash,
-            timestamp: timestamp,
-            uaid: uaid,
-          };
-
-          const sortedKeys = Object.keys(payload).sort() as (keyof typeof payload)[];
-          const orderedPayload: Record<string, any> = {};
-          for (const key of sortedKeys) {
-            orderedPayload[key] = payload[key];
-          }
-          const canonicalPayload = JSON.stringify(orderedPayload);
+          // Render the timestamp exactly as Python's json.dumps does — it
+          // always keeps a decimal point (e.g. 1700000000.0), whereas JS
+          // drops the trailing ".0" for whole seconds. Without this, a
+          // whole-second timestamp produces a different canonical string
+          // and verification fails. Build the string manually so the
+          // number formatting is preserved.
+          const tsRaw = timestampStr.trim();
+          const timestampStrCanonical = /[.eE]/.test(tsRaw) ? tsRaw : `${tsRaw}.0`;
+          const canonicalPayload =
+            `{"body_hash":${JSON.stringify(bodyHash)},` +
+            `"timestamp":${timestampStrCanonical},` +
+            `"uaid":${JSON.stringify(uaid)}}`;
           const payloadHash = crypto.createHash("sha256").update(canonicalPayload).digest();
 
           // Construct DER-encoded SPKI public key from the 32-byte hex key
