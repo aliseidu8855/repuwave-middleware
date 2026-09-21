@@ -30,3 +30,23 @@ export interface VerificationResult {
 export interface RepuwaveRequest {
   repuwave?: VerificationResult;
 }
+
+/**
+ * The defaults, in one place.
+ *
+ * `client.ts` and `middleware.ts` each applied their own, which is how
+ * client.ts came to omit `enforceMode` and `signupUrl` entirely once they were
+ * added to RepuwaveConfig -- the package stopped typechecking and nothing
+ * reported it, because this repository had no CI.
+ *
+ * `enforceMode` defaults to 'enforce' deliberately. A middleware whose default
+ * is to let unverified traffic through is a middleware that does nothing until
+ * someone reads the documentation.
+ */
+export const REPUWAVE_DEFAULTS = {
+  minimumScore: 50,
+  cacheTtlSeconds: 300,
+  uaidHeader: "x-repuwave-uaid",
+  enforceMode: "enforce",
+  signupUrl: "https://repuwave.fasolink.app",
+} as const;

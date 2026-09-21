@@ -1,0 +1,77 @@
+name: CI
+
+# This repository had no CI at all, while containing the fix for a signature
+# verification bypass: two middleware packages read a client-supplied
+# X-Repuwave-UAID and looked up its score without verifying any signature, and
+# FastAPI's check was guarded by `if signature and timestamp and public_key`, so
+# omitting the header skipped verification entirely. That fix was backed by
+# eight tests that ran only where someone happened to run them.
+#
+# The conformance job is the other half, and the more subtle one. This package
+# contains an independent implementation of the canonical signing form -- a
+# third, after the server and the Rust extension -- and it must produce
+# byte-identical payloads or every signature it verifies is rejected. That check
+# previously read the vectors from a SIBLING repository and skipped when they
+# were absent, which is everywhere except a developer's laptop with the right
+# directory layout. The vectors are now vendored here and their absence fails.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Also run when the server's canonical form changes, dispatched by the core
+  # repo's CI. Without this, a server-side change would only be discovered the
+  # next time someone happened to push here.
+  repository_dispatch:
+    types: [protocol-changed]
+
+jobs:
+  python:
+    name: Python middleware (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install pynacl pytest
+
+      - name: Assert the conformance vectors are present
+        # Checked explicitly so a missing file reads as what it is, rather than
+        # as a test that quietly did not run.
+        working-directory: .
+        run: |
+          test -f conformance/protocol_vectors.json || {
+            echo "::error::conformance/protocol_vectors.json is missing.";
+            echo "It is generated in repuwave-core by scripts/generate_protocol_vectors.py";
+            echo "and vendored here. Without it, this middleware's canonical form";
+            echo "is compared against nothing.";
+            exit 1;
+          }
+
+      - name: Run tests
+        run: pytest tests -q
+
+  express:
+    name: Express middleware (build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: express
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install and build
+        run: |
+          npm ci || npm install
+          npx tsc --noEmit

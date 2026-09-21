@@ -15,6 +15,7 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
+import { REPUWAVE_DEFAULTS } from "./types";
 import { RepuwaveApiClient } from "./client";
 import type { RepuwaveConfig, RepuwaveRequest, VerificationResult } from "./types";
 
@@ -38,8 +39,8 @@ export function repuwaveGuard(config: RepuwaveConfig) {
     next: NextFunction
   ): Promise<void> => {
     const uaid = req.headers[client.uaidHeader] as string | undefined;
-    const enforceMode = config.enforceMode || 'enforce';
-    const signupUrl = config.signupUrl || 'https://repuwave.fasolink.app';
+    const enforceMode = config.enforceMode ?? REPUWAVE_DEFAULTS.enforceMode;
+    const signupUrl = config.signupUrl ?? REPUWAVE_DEFAULTS.signupUrl;
     const minScore = config.minimumScore || 50;
 
     const viralResponse = {

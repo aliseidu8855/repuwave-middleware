@@ -20,10 +20,7 @@ from repuwave_middleware._signing import (
 )
 
 UAID = "550e8400-e29b-41d4-a716-446655440000"
-VECTORS = (
-    pathlib.Path(__file__).resolve().parents[3]
-    / "repuwave-sdks" / "conformance" / "protocol_vectors.json"
-)
+VECTORS = pathlib.Path(__file__).resolve().parents[2] / "conformance" / "protocol_vectors.json"
 
 
 @pytest.fixture
@@ -109,7 +106,6 @@ def test_an_unverifiable_signature_is_rejected_not_skipped(key):
     assert exc.value.reason == "public_key_unavailable"
 
 
-@pytest.mark.skipif(not VECTORS.exists(), reason="conformance vectors not present")
 def test_canonical_form_matches_the_golden_vectors():
     """
     The cross-repo contract.
@@ -119,7 +115,16 @@ def test_canonical_form_matches_the_golden_vectors():
     in one place and fail in another, and the symptom appears in production
     rather than in a test.
     """
+    assert VECTORS.is_file(), (
+        f"{VECTORS} is missing. This used to skip when absent, and the file lived "
+        f"in a sibling repository -- so the only check that this middleware's "
+        f"canonical form matches the server's silently did nothing wherever that "
+        f"repo was not checked out beside this one, which is everywhere except a "
+        f"developer's laptop. A drifted canonical form means every signature this "
+        f"middleware verifies is rejected."
+    )
     vectors = json.loads(VECTORS.read_text())["vectors"]
+    assert vectors, "the vectors file carries no vectors"
     assert vectors, "vectors file is empty"
 
     for case in vectors:

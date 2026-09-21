@@ -4,6 +4,7 @@
  * Calls GET /v1/verify/{uaid} with LRU caching.
  */
 
+import { REPUWAVE_DEFAULTS } from "./types";
 import type { RepuwaveConfig, VerificationResult } from "./types";
 
 interface CacheEntry {
@@ -19,9 +20,11 @@ export class RepuwaveApiClient {
     this.config = {
       apiUrl: config.apiUrl,
       apiKey: config.apiKey,
-      minimumScore: config.minimumScore ?? 50,
-      cacheTtlSeconds: config.cacheTtlSeconds ?? 300,
-      uaidHeader: config.uaidHeader ?? "x-repuwave-uaid",
+      minimumScore: config.minimumScore ?? REPUWAVE_DEFAULTS.minimumScore,
+      cacheTtlSeconds: config.cacheTtlSeconds ?? REPUWAVE_DEFAULTS.cacheTtlSeconds,
+      uaidHeader: config.uaidHeader ?? REPUWAVE_DEFAULTS.uaidHeader,
+      enforceMode: config.enforceMode ?? REPUWAVE_DEFAULTS.enforceMode,
+      signupUrl: config.signupUrl ?? REPUWAVE_DEFAULTS.signupUrl,
     };
   }
 
