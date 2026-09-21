@@ -130,3 +130,30 @@ def verify_agent_signature(check: SignatureCheck, *, required: bool) -> None:
         raise SignatureProblem(
             "signature_malformed", f"Signature could not be read: {exc}"
         ) from None
+
+
+def forward_headers(
+    signature_hex: str | None,
+    timestamp_raw: str | None,
+    body: bytes | None,
+) -> dict:
+    """
+    The headers GET /v1/verify/{uaid}/ needs, taken from the agent's request.
+
+    That endpoint checks the agent's signature server-side and refuses without
+    it -- a UAID alone proves nothing, because UAIDs are public in the key
+    directory. This middleware already holds the signature, so it forwards it.
+
+    `body_hash` is included only when there is a body, matching what the agent
+    signed. Only this middleware saw the body, so if it does not forward the
+    hash the server cannot reconstruct the payload and an honest request is
+    refused.
+    """
+    headers = {}
+    if signature_hex:
+        headers["X-Repuwave-Signature"] = signature_hex
+    if timestamp_raw:
+        headers["X-Repuwave-Timestamp"] = str(timestamp_raw)
+    if body:
+        headers["X-Repuwave-Body-Hash"] = hashlib.sha256(body).hexdigest()
+    return headers

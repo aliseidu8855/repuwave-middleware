@@ -3,7 +3,12 @@ import httpx
 from django.conf import settings
 from django.http import JsonResponse
 
-from ._signing import SignatureCheck, SignatureProblem, verify_agent_signature
+from ._signing import (
+    SignatureCheck,
+    SignatureProblem,
+    forward_headers,
+    verify_agent_signature,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +71,16 @@ class RepuwaveGuard:
                 return self.get_response(request)
                 
         try:
-            response = self.client.get(f"/verify/{uaid}/")
+            # Forward the agent's own signature: the server checks it and
+            # refuses without it, because a UAID alone proves nothing.
+            response = self.client.get(
+                f"/verify/{uaid}/",
+                headers=forward_headers(
+                    request.headers.get("X-Repuwave-Signature"),
+                    request.headers.get("X-Repuwave-Timestamp"),
+                    request.body,
+                ),
+            )
             if response.status_code == 200:
                 data = response.json()
                 request.repuwave = data

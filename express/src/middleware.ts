@@ -60,19 +60,38 @@ export function repuwaveGuard(config: RepuwaveConfig) {
       }
     }
 
+    // Read the agent's proof before calling out. The server checks the
+    // signature itself and refuses without it -- a UAID alone proves nothing,
+    // because UAIDs are public in the key directory -- so it has to be
+    // forwarded, and the body hash with it, since only we saw the body.
+    const signature = req.headers["x-repuwave-signature"] as string | undefined;
+    const timestampStr = req.headers["x-repuwave-timestamp"] as string | undefined;
+
+    const crypto = require("crypto");
+    let bodyHash = "";
+    if (req.body && Object.keys(req.body).length > 0) {
+      // Best effort body stringification. For true exact matching,
+      // services should use raw body middleware.
+      const bodyString =
+        typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+      bodyHash = crypto.createHash("sha256").update(bodyString).digest("hex");
+    }
+
     try {
-      const result: VerificationResult = await client.verify(uaid);
+      const result: VerificationResult = await client.verify(uaid, {
+        signature,
+        timestamp: timestampStr,
+        bodyHash,
+      });
 
       // Attach to request for downstream handlers
       req.repuwave = result;
 
-      // Cryptographic Signature Check (Option B)
-      const signature = req.headers["x-repuwave-signature"] as string | undefined;
-      const timestampStr = req.headers["x-repuwave-timestamp"] as string | undefined;
-
+      // Cryptographic Signature Check (Option B). Kept as well as the
+      // server-side check: it costs nothing here and a second, independent
+      // verification is the difference between one bug and two.
       if (signature && timestampStr && result.public_key) {
         try {
-          const crypto = require("crypto");
           const timestamp = parseFloat(timestampStr);
           const now = Date.now() / 1000;
           
@@ -82,14 +101,6 @@ export function repuwaveGuard(config: RepuwaveConfig) {
               message: "Timestamp outside 15s trust window",
             });
             return;
-          }
-
-          let bodyHash = "";
-          if (req.body && Object.keys(req.body).length > 0) {
-            // Best effort body stringification. For true exact matching,
-            // services should use raw body middleware.
-            const bodyString = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-            bodyHash = crypto.createHash("sha256").update(bodyString).digest("hex");
           }
 
           // Render the timestamp exactly as Python's json.dumps does — it

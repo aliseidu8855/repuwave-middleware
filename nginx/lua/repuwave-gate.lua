@@ -73,7 +73,17 @@ local res, err = httpc:request_uri(repuwave_api_url .. "/verify/" .. uaid .. "/"
         -- previous "Authorization: ApiKey ..." was rejected with 403 on every
         -- single call. In enforce mode that meant 402 for all legitimate
         -- traffic; in audit mode it meant the gate checked nothing at all.
-        ["X-Service-API-Key"] = repuwave_api_key or ""
+        ["X-Service-API-Key"] = repuwave_api_key or "",
+        -- Forward the agent's own proof. The server verifies the signature and
+        -- refuses without it: a UAID alone proves nothing, because UAIDs are
+        -- public in the key directory. Reading the request body here would
+        -- require ngx.req.read_body() on every request, so the body hash is
+        -- forwarded only if the agent's client sent it as a header -- this gate
+        -- is for bodyless GET traffic, and a request with a body should use one
+        -- of the application-level middlewares instead.
+        ["X-Repuwave-Signature"] = ngx.var.http_x_repuwave_signature or "",
+        ["X-Repuwave-Timestamp"] = ngx.var.http_x_repuwave_timestamp or "",
+        ["X-Repuwave-Body-Hash"] = ngx.var.http_x_repuwave_body_hash or ""
     },
     -- TLS verification ON. This was false, which disabled certificate checking
     -- on the one request whose answer is a security decision -- anyone able to

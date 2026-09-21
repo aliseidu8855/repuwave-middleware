@@ -32,7 +32,15 @@ export class RepuwaveApiClient {
    * Verify an agent's reputation score.
    * Returns cached result if available, otherwise calls the Repuwave API.
    */
-  async verify(uaid: string): Promise<VerificationResult> {
+  /**
+   * @param proof - The agent's own signature headers, forwarded to the server.
+   *   GET /v1/verify/ checks the signature and refuses without it: a UAID alone
+   *   proves nothing, because UAIDs are public in the key directory.
+   */
+  async verify(
+    uaid: string,
+    proof?: { signature?: string; timestamp?: string; bodyHash?: string },
+  ): Promise<VerificationResult> {
     // Check cache first
     const cached = this.cache.get(uaid);
     if (cached && cached.expiresAt > Date.now()) {
@@ -46,6 +54,9 @@ export class RepuwaveApiClient {
       headers: {
         "X-Service-API-Key": this.config.apiKey,
         "Content-Type": "application/json",
+        ...(proof?.signature ? { "X-Repuwave-Signature": proof.signature } : {}),
+        ...(proof?.timestamp ? { "X-Repuwave-Timestamp": proof.timestamp } : {}),
+        ...(proof?.bodyHash ? { "X-Repuwave-Body-Hash": proof.bodyHash } : {}),
       },
     });
 

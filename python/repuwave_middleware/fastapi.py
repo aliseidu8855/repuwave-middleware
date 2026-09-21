@@ -4,7 +4,12 @@ from typing import Optional
 from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 
-from ._signing import SignatureCheck, SignatureProblem, verify_agent_signature
+from ._signing import (
+    SignatureCheck,
+    SignatureProblem,
+    forward_headers,
+    verify_agent_signature,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +67,17 @@ class RepuwaveGuard:
                 return request
                 
         try:
-            response = await self.client.get(f"/verify/{uaid}/")
+            # Forward the agent's own signature: the server checks it and
+            # refuses without it, because a UAID alone proves nothing.
+            body = await request.body()
+            response = await self.client.get(
+                f"/verify/{uaid}/",
+                headers=forward_headers(
+                    request.headers.get("X-Repuwave-Signature"),
+                    request.headers.get("X-Repuwave-Timestamp"),
+                    body,
+                ),
+            )
             if response.status_code == 200:
                 data = response.json()
                 request.state.repuwave = data
@@ -87,7 +102,7 @@ class RepuwaveGuard:
                             uaid=uaid,
                             signature_hex=request.headers.get("x-repuwave-signature"),
                             timestamp_raw=request.headers.get("x-repuwave-timestamp"),
-                            body=await request.body(),
+                            body=body,
                             public_key_hex=data.get("public_key"),
                         ),
                         required=self.require_signature,
