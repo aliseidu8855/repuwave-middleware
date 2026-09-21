@@ -18,6 +18,12 @@ classifiers = [
 ]
 dependencies = [
     "httpx>=0.24.0",
+    # Not optional. _signing.py imports nacl to verify the agent's signature,
+    # and without it every signed request is rejected with 403
+    # "pynacl_missing" -- so `pip install repuwave-middleware` produced a guard
+    # that blocked all legitimate traffic. CI hid this by installing pynacl
+    # explicitly in its own step.
+    "pynacl>=1.5",
 ]
 
 [project.optional-dependencies]

@@ -17,6 +17,20 @@ export interface RepuwaveConfig {
   enforceMode?: 'enforce' | 'audit';
   /** URL to redirect blocked developers to (default: "https://repuwave.fasolink.app") */
   signupUrl?: string;
+  /**
+   * What to do when Repuwave cannot be reached or answers an error.
+   *
+   * Defaults to 'closed', matching the nginx Lua gate. It was previously an
+   * unconditional fail-open described only in a code comment.
+   *
+   * The default mattered much more after 21 Sep 2026, when GET /v1/verify/
+   * began requiring the agent's signature. Before then this path was reached
+   * only during an outage. After it, an ordinary unsigned request produces a
+   * 401 -- so fail-open turned "the API is down" into "anyone who omits one
+   * header is admitted". That is the whole guard bypassed by deleting a header
+   * from a curl command.
+   */
+  failureMode?: 'closed' | 'open';
 }
 
 export interface VerificationResult {
@@ -49,4 +63,5 @@ export const REPUWAVE_DEFAULTS = {
   uaidHeader: "x-repuwave-uaid",
   enforceMode: "enforce",
   signupUrl: "https://repuwave.fasolink.app",
+  failureMode: "closed",
 } as const;

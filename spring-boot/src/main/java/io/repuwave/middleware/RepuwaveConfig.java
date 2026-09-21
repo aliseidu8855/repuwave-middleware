@@ -27,6 +27,26 @@ public class RepuwaveConfig {
     private EnforceMode enforceMode = EnforceMode.ENFORCE;
     private String signupUrl = "https://repuwave.fasolink.app";
 
+    /**
+     * What to do when Repuwave itself cannot be reached or answers an error.
+     *
+     * Defaults to CLOSED, matching the nginx Lua gate, and changed from an
+     * unconditional fail-open that was only described in a code comment.
+     *
+     * The default mattered more after 21 Sep 2026, when /v1/verify/ began
+     * requiring the agent's signature. Before that, this path was reached only
+     * during an outage. After it, an ordinary unsigned request produces a 401 --
+     * so fail-open turned "the API is down" into "anyone who omits one header is
+     * admitted", which is the whole guard bypassed with a single edit to a curl
+     * command.
+     */
+    public enum FailureMode {
+        CLOSED,
+        OPEN
+    }
+
+    private FailureMode failureMode = FailureMode.CLOSED;
+
     public String getApiUrl() { return apiUrl; }
     public void setApiUrl(String apiUrl) { this.apiUrl = apiUrl; }
 
@@ -41,6 +61,9 @@ public class RepuwaveConfig {
 
     public EnforceMode getEnforceMode() { return enforceMode; }
     public void setEnforceMode(EnforceMode enforceMode) { this.enforceMode = enforceMode; }
+
+    public FailureMode getFailureMode() { return failureMode; }
+    public void setFailureMode(FailureMode failureMode) { this.failureMode = failureMode; }
 
     public String getSignupUrl() { return signupUrl; }
     public void setSignupUrl(String signupUrl) { this.signupUrl = signupUrl; }

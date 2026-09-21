@@ -90,7 +90,27 @@ export function repuwaveGuard(config: RepuwaveConfig) {
       // Cryptographic Signature Check (Option B). Kept as well as the
       // server-side check: it costs nothing here and a second, independent
       // verification is the difference between one bug and two.
-      if (signature && timestampStr && result.public_key) {
+      // Unconditional when a public key came back.
+      //
+      // This used to read `if (signature && timestampStr && result.public_key)`,
+      // so an attacker who simply omitted the signature skipped the local check
+      // entirely -- the same `if signature and timestamp` anti-pattern the
+      // Python guards removed. A caller does not get to choose whether they are
+      // checked.
+      if (result.public_key) {
+        if (!signature || !timestampStr) {
+          if (enforceMode === 'enforce') {
+            res.status(403).json({
+              error: "Signature Required",
+              message:
+                "This endpoint requires a signed request. Send X-Repuwave-Signature " +
+                "and X-Repuwave-Timestamp alongside your UAID.",
+            });
+            return;
+          }
+          next();
+          return;
+        }
         try {
           const timestamp = parseFloat(timestampStr);
           const now = Date.now() / 1000;
@@ -154,10 +174,29 @@ export function repuwaveGuard(config: RepuwaveConfig) {
 
       next();
     } catch (err: any) {
-      // On API failure, let the request through (fail-open)
-      // but log the error. Override with fail-closed if needed.
+      // Failure mode is a deliberate choice now, and it defaults to closed.
+      //
+      // It used to be an unconditional fail-open documented only in this
+      // comment. That was defensible while this path meant "Repuwave is down".
+      // Since 21 Sep 2026 GET /v1/verify/ requires the agent's signature, so an
+      // ordinary unsigned request arrives here as a 401 -- and fail-open turned
+      // the guard into something anyone could walk past by deleting one header.
       console.error("[repuwave] Verification error:", err.message);
-      next();
+
+      if ((config.failureMode ?? REPUWAVE_DEFAULTS.failureMode) === 'open') {
+        next();
+        return;
+      }
+
+      // 502, not 402. The agent is not untrusted -- we could not find out.
+      // Telling its developer to go improve their reputation would send them to
+      // fix something that is not broken.
+      res.status(502).json({
+        error: "Verification Unavailable",
+        message:
+          "Could not verify agent reputation. This is a problem at the gateway, " +
+          "not with your agent.",
+      });
     }
   };
 }

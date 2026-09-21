@@ -82,7 +82,7 @@ jobs:
           npx tsc --noEmit
 
   spring:
-    name: Spring Boot middleware (compile)
+    name: Spring Boot middleware (test)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -97,5 +97,12 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Compile
-        run: mvn -B -ntp compile
+      # `compile` was not enough, and the gap was not theoretical.
+      #
+      # VerificationResult declared four fields while the server sends eight,
+      # and the client used a plain ObjectMapper, which fails on unknown
+      # properties. Every successful verify threw at runtime and the interceptor
+      # failed open -- so the guard had never blocked an agent. It compiled
+      # perfectly throughout.
+      - name: Test
+        run: mvn -B -ntp test

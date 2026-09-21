@@ -25,6 +25,7 @@ export class RepuwaveApiClient {
       uaidHeader: config.uaidHeader ?? REPUWAVE_DEFAULTS.uaidHeader,
       enforceMode: config.enforceMode ?? REPUWAVE_DEFAULTS.enforceMode,
       signupUrl: config.signupUrl ?? REPUWAVE_DEFAULTS.signupUrl,
+      failureMode: config.failureMode ?? REPUWAVE_DEFAULTS.failureMode,
     };
   }
 
@@ -41,10 +42,22 @@ export class RepuwaveApiClient {
     uaid: string,
     proof?: { signature?: string; timestamp?: string; bodyHash?: string },
   ): Promise<VerificationResult> {
-    // Check cache first
-    const cached = this.cache.get(uaid);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.result;
+    // The cache is only consultable by a caller that presented a signature.
+    //
+    // It is keyed on the UAID alone and was checked before the API call, so
+    // once any legitimate signed request for a UAID had been cached, a second
+    // caller could present that UAID with NO signature, hit the cache, never
+    // reach the server, and be admitted. The server-side signature requirement
+    // was defeated for the whole TTL -- 300 seconds by default.
+    //
+    // A signed caller is still safe to serve from cache because middleware.ts
+    // verifies the signature locally against the cached public_key on every
+    // request, hit or miss.
+    if (proof?.signature && proof?.timestamp) {
+      const cached = this.cache.get(uaid);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.result;
+      }
     }
 
     // Call Repuwave API

@@ -111,9 +111,32 @@ public class RepuwaveInterceptor implements HandlerInterceptor {
             return true;
 
         } catch (Exception e) {
-            // Fail-open: log error but allow request through
+            // Failure mode is a deliberate, configurable choice -- and it
+            // defaults to closed. It used to be an unconditional fail-open
+            // described only in the comment on this line.
+            //
+            // Since 21 Sep 2026 /v1/verify/ requires the agent's signature, so
+            // an unsigned request lands here with a 401. Failing open therefore
+            // meant the entire guard could be bypassed by omitting one header,
+            // which is not an outage policy, it is an open door.
             log.error("Repuwave verification error for {}: {}", uaid, e.getMessage());
-            return true;
+
+            if (config.getFailureMode() == RepuwaveConfig.FailureMode.OPEN) {
+                return true;
+            }
+
+            // 502, not 402. The agent is not untrusted -- we could not find
+            // out. Telling its developer to improve their reputation when the
+            // gate is broken sends them to fix the wrong thing.
+            response.setStatus(502);
+            response.setContentType("application/json");
+            response.getWriter().write(objectMapper.writeValueAsString(
+                java.util.Map.of(
+                    "error", "Verification Unavailable",
+                    "message", "Could not verify agent reputation. This is a problem at the gateway, not with your agent."
+                )
+            ));
+            return false;
         }
     }
 }

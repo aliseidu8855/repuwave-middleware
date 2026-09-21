@@ -25,6 +25,20 @@ local signup_url = os.getenv("REPUWAVE_SIGNUP_URL") or "https://repuwave.fasolin
 -- inheriting it from an error path.
 local fail_mode = os.getenv("REPUWAVE_FAIL_MODE") or "closed"
 
+-- Clear the headers this gate sets, before doing anything else.
+--
+-- The gate sets X-Repuwave-Score and X-Repuwave-Verified for the backend on the
+-- success path. Every other path -- audit mode with no UAID, a transport error,
+-- a 401/403 from Repuwave -- left whatever the client sent in place, and the
+-- backend had no way to tell a gate-set value from a forged one. A client could
+-- simply send "X-Repuwave-Score: 100".
+--
+-- repuwave.conf already performs exactly this hygiene for X-JA3-Fingerprint and
+-- explains why it is necessary. The same reasoning applies here and was not
+-- applied. Unconditional, at the top, so no later branch can forget.
+ngx.req.clear_header("X-Repuwave-Score")
+ngx.req.clear_header("X-Repuwave-Verified")
+
 local viral_response = cjson.encode({
     error = "Untrusted Agent",
     message = "This endpoint requires a Repuwave Trust Score of " .. minimum_score .. "+. Get verified at " .. signup_url
