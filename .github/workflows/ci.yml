@@ -80,3 +80,22 @@ jobs:
         run: |
           npm ci || npm install
           npx tsc --noEmit
+
+  spring:
+    name: Spring Boot middleware (compile)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: spring-boot
+    # Added 21 Sep 2026. Without it this package sat unbuilt and unbuildable by
+    # anyone reviewing a change, which is why it was marked DO NOT DEPLOY rather
+    # than fixed: there was no way to know whether a fix compiled.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Compile
+        run: mvn -B -ntp compile

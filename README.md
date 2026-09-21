@@ -61,21 +61,18 @@ app.use(repuwaveGuard({
 
 ### `spring-boot/` — Java
 
-> **Known broken, and not currently supported. Do not deploy it.**
+> **Fixed 21 September 2026, and now built in CI.**
 >
-> Two separate problems. It reads a client-supplied `X-Repuwave-UAID` header and
-> blocks on the score without verifying any signature, so anyone who knows a
-> UAID passes the gate — and UAIDs are public, listed in the key directory. And
-> since `GET /v1/verify/{uaid}/` began checking signatures on 21 September 2026,
-> it no longer forwards what that endpoint requires, so every call now returns
-> 401 and the gate refuses all traffic.
+> It previously read a client-supplied `X-Repuwave-UAID` header and blocked on
+> the score without verifying any signature, so anyone who knew a UAID passed —
+> and UAIDs are public, listed in the key directory. It now forwards the agent's
+> `X-Repuwave-Signature` and `X-Repuwave-Timestamp` to `GET /v1/verify/`, which
+> verifies them server-side.
 >
-> The fix is small: take the agent's `X-Repuwave-Signature`,
-> `X-Repuwave-Timestamp` and, for requests with a body, the sha256 of that body,
-> and forward all three to `verify` — as `python/`, `express/` and `nginx/` now
-> do. It is not done here because this repository has no Java toolchain in CI,
-> and shipping unverified code into a security path is how the first problem
-> arrived. **It needs a Java build in CI before it can be trusted again.**
+> For requests with a body, supply `X-Repuwave-Body-Hash` from a
+> `ContentCachingRequestWrapper` filter ahead of the interceptor. It is not
+> computed here because reading the body would consume the stream before your
+> application sees it.
 
 A Spring `HandlerInterceptor` for Java backend services.
 

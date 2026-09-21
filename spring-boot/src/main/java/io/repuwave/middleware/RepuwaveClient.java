@@ -37,20 +37,50 @@ public class RepuwaveClient {
      * Verify an agent's reputation score.
      */
     public VerificationResult verify(String uaid) throws IOException, InterruptedException {
+        return verify(uaid, null, null, null);
+    }
+
+    /**
+     * Verify an agent, forwarding the proof it sent you.
+     *
+     * @param signature the agent's X-Repuwave-Signature
+     * @param timestamp the agent's X-Repuwave-Timestamp
+     * @param bodyHash  sha256 hex of the request body, or null if none
+     */
+    public VerificationResult verify(
+            String uaid, String signature, String timestamp, String bodyHash
+    ) throws IOException, InterruptedException {
         // Check cache
         CachedResult cached = cache.get(uaid);
         if (cached != null && cached.expiresAt > System.currentTimeMillis()) {
             return cached.result;
         }
 
-        // Call API
-        HttpRequest request = HttpRequest.newBuilder()
+        // Call API.
+        //
+        // The agent's own signature is forwarded: GET /v1/verify/ checks it
+        // against the agent's registered public key and refuses without it. A
+        // UAID alone proves nothing, because UAIDs are public -- they are
+        // listed in the key directory. Only this service saw the request body,
+        // so its sha256 goes too or the signature cannot be reconstructed.
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(config.getApiUrl() + "/verify/" + uaid + "/"))
                 .header("X-Service-API-Key", config.getApiKey())
                 .header("Content-Type", "application/json")
                 .GET()
-                .timeout(Duration.ofSeconds(10))
-                .build();
+                .timeout(Duration.ofSeconds(10));
+
+        if (signature != null && !signature.isBlank()) {
+            builder.header("X-Repuwave-Signature", signature);
+        }
+        if (timestamp != null && !timestamp.isBlank()) {
+            builder.header("X-Repuwave-Timestamp", timestamp);
+        }
+        if (bodyHash != null && !bodyHash.isBlank()) {
+            builder.header("X-Repuwave-Body-Hash", bodyHash);
+        }
+
+        HttpRequest request = builder.build();
 
         HttpResponse<String> response = httpClient.send(
                 request, HttpResponse.BodyHandlers.ofString()
