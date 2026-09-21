@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * Usage in application.yml:
  *   repuwave:
- *     api-url: https://api.repuwave.io/v1
+ *     api-url: https://repuwave.fasolink.app/v1
  *     api-key: your-service-api-key
  *     minimum-score: 50
  *     uaid-header: X-Repuwave-UAID
@@ -20,7 +20,7 @@ public class RepuwaveConfig {
         AUDIT
     }
 
-    private String apiUrl = "https://api.repuwave.io/v1";
+    private String apiUrl = "https://repuwave.fasolink.app/v1";
     private String apiKey;
     private int minimumScore = 50;
     private String uaidHeader = "X-Repuwave-UAID";

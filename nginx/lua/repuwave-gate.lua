@@ -6,7 +6,7 @@ local http = require "resty.http"
 local cjson = require "cjson"
 
 -- Configuration
-local repuwave_api_url = os.getenv("REPUWAVE_API_URL") or "https://api.repuwave.io/v1"
+local repuwave_api_url = os.getenv("REPUWAVE_API_URL") or "https://repuwave.fasolink.app/v1"
 local repuwave_api_key = os.getenv("REPUWAVE_API_KEY")
 local minimum_score = tonumber(os.getenv("REPUWAVE_MIN_SCORE")) or 50
 local enforce_mode = os.getenv("REPUWAVE_ENFORCE_MODE") or "enforce"

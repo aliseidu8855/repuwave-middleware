@@ -15,7 +15,7 @@ class RepuwaveGuard:
     def __init__(
         self,
         api_key: str,
-        api_url: str = "https://api.repuwave.io/v1",
+        api_url: str = "https://repuwave.fasolink.app/v1",
         minimum_score: int = 50,
         enforce_mode: str = "enforce",
         signup_url: str = "https://repuwave.fasolink.app",

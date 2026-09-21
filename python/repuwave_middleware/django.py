@@ -25,7 +25,7 @@ class RepuwaveGuard:
         
         # Load config from settings.REPUWAVE or defaults
         config = getattr(settings, "REPUWAVE", {})
-        self.api_url = config.get("API_URL", "https://api.repuwave.io/v1")
+        self.api_url = config.get("API_URL", "https://repuwave.fasolink.app/v1")
         self.api_key = config.get("API_KEY")
         self.min_score = config.get("MINIMUM_SCORE", 50)
         self.enforce_mode = config.get("ENFORCE_MODE", "enforce")

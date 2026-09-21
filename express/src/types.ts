@@ -3,7 +3,7 @@
  */
 
 export interface RepuwaveConfig {
-  /** Repuwave API base URL (e.g., "https://api.repuwave.io/v1") */
+  /** Repuwave API base URL (e.g., "https://repuwave.fasolink.app/v1") */
   apiUrl: string;
   /** Service API key for authenticating with Repuwave */
   apiKey: string;

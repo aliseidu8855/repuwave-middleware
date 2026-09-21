@@ -20,7 +20,7 @@ MIDDLEWARE = [
 
 REPUWAVE = {
     "API_KEY": "your-service-api-key",
-    "API_URL": "https://api.repuwave.io/v1",
+    "API_URL": "https://repuwave.fasolink.app/v1",
     "MINIMUM_SCORE": 70,
     "ENFORCE_MODE": "enforce", # or "audit"
     "SIGNUP_URL": "https://repuwave.fasolink.app",

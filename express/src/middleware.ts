@@ -8,7 +8,7 @@
  *   import { repuwaveGuard } from "@repuwave/express-middleware";
  *
  *   app.use(repuwaveGuard({
- *     apiUrl: "https://api.repuwave.io/v1",
+ *     apiUrl: "https://repuwave.fasolink.app/v1",
  *     apiKey: process.env.REPUWAVE_API_KEY!,
  *     minimumScore: 60,
  *   }));
