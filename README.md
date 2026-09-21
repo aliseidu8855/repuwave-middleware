@@ -1,24 +1,31 @@
-# Repuwave Middleware — The VIP Passport for AI Agents
+# Repuwave Middleware
 
-> **Drop-in middleware for services to gate access based on Cryptographic Attestation and Repuwave Trust Scores.**  
-> Available for Node.js (Express), Java (Spring Boot), Python (Django/FastAPI), and NGINX (Lua).
+> **Server-side interceptors that check an incoming agent's signature and trust score
+> before your application code runs.**
+> Express, Spring Boot, Django, FastAPI, NGINX (Lua) and HAProxy.
 
 ---
 
 ## Overview
 
-In the emerging Machine Economy, guessing whether traffic comes from a human or a bot using heuristics is a losing strategy. CAPTCHAs and "legacy security" tools actively block high-value, automated customers from spending money on your API.
+Heuristic bot detection has a structural problem: the signals that catch scrapers also
+catch the automated customers you want. A CAPTCHA cannot tell the difference between an
+agent buying something and an agent scraping something.
 
-`repuwave-middleware` provides **service-side interceptors** that flip this model. Instead of looking for bots, it looks for **Mathematical Certainty**. It acts as a VIP Passport control for your API:
+`repuwave-middleware` asks a different question. Rather than guessing whether traffic is
+automated, it checks whether the agent signed the request and what its record looks like.
+Automation stops being the thing you screen for:
 
 1. **Extracts** the `X-Repuwave-UAID` and cryptographic signature from incoming requests.
 2. **Calls** the Repuwave API (`GET /v1/verify/{uaid}`) to verify the agent's identity and reputation score.
-3. **Enforces** the "Viral Redirect" (HTTP 402) for untrusted or unsigned agents.
+3. **Rejects** unsigned agents, or agents below your score threshold, with HTTP 402 and a payload telling the developer how to get verified.
 4. **Passes through** verified, high-reputation agents to your application logic.
 
-### The Viral Redirect Strategy (Enforce Mode)
+### Enforce mode, and what it returns
 
-If a developer points an AI agent at your API and they haven't verified it on Repuwave, our middleware automatically intercepts the request and returns an HTTP `402 Payment Required` (or 403) with a specific payload:
+An unverified agent gets an actionable rejection rather than a silent 403. The point is
+that the developer on the other end can read the response and fix it themselves, without
+opening a support ticket with you:
 
 ```json
 {
@@ -27,13 +34,18 @@ If a developer points an AI agent at your API and they haven't verified it on Re
 }
 ```
 
-This ensures you don't waste compute on dark agents, while simultaneously forcing legitimate developers to register their bots, stake their escrow, and become "Good Citizens" on the Repuwave network before they touch your systems.
+You stop spending compute on unidentified traffic, and the developer gets a specific
+next step instead of a dead end.
+
+**Set `signupUrl` to your own docs if you prefer.** The default points at Repuwave, which
+is convenient for us and not necessarily right for you — it is a configuration value, not
+a requirement.
 
 ---
 
 ## Packages
 
-### 🟢 `express/` — Node.js & Express
+### `express/` — Node.js and Express
 A drop-in middleware for Node.js APIs.
 
 ```typescript
@@ -47,7 +59,7 @@ app.use(repuwaveGuard({
 }));
 ```
 
-### ☕ `spring-boot/` — Java Enterprise
+### `spring-boot/` — Java
 A Spring `HandlerInterceptor` for Java backend services.
 
 ```yaml
@@ -58,7 +70,7 @@ repuwave:
   enforce-mode: ENFORCE
 ```
 
-### 🐍 `python/` — Django & FastAPI
+### `python/` — Django & FastAPI
 Interceptors for modern Python web frameworks.
 
 **Django (`settings.py`):**
@@ -78,7 +90,7 @@ from repuwave_middleware.fastapi import RepuwaveGuard
 app.get("/protected", dependencies=[Depends(RepuwaveGuard(api_key="...", enforce_mode="enforce"))])
 ```
 
-### ⚙️ `nginx/` — Lua Gateway
+### `nginx/` — Lua Gateway
 An OpenResty/Lua script that runs directly at the reverse proxy layer, terminating dark agents before they even reach your backend servers.
 
 ---
